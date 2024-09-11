@@ -7,3 +7,10 @@ updates:
     labels:
       - dependencies
       - release-note-none
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - dependencies
+      - release-note-none

@@ -12,3 +12,10 @@ updates:
         patterns:
           - molecule
           - molecule-plugins*
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - dependencies
+      - release-note-none

@@ -348,3 +348,8 @@ cilium_certgen_args:
 
 cilium_enable_host_firewall: false
 cilium_policy_audit_mode: false
+
+# Cilium dnsproxy service, disabled by default.
+# Before enabling don't forget to disable nodelocaldns
+# https://github.com/cilium/cilium/issues/33144
+cilium_enable_transparent_dnsproxy: false

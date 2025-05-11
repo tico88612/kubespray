@@ -160,3 +160,6 @@ envoy:
   image:
     repositry: {{ cilium_hubble_envoy_image_repo }}
     tag: {{ cilium_hubble_envoy_image_tag }}
+
+dnsProxy:
+  enableTransparentMode: {{ cilium_enable_transparent_dnsproxy }}

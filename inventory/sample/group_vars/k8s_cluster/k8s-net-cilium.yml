@@ -376,3 +376,8 @@ cilium_l2announcements: false
 #       resourceNames:
 #       - toto
 # cilium_clusterrole_rules_operator_extra_vars: []
+
+# Cilium transparent dnsproxy, disabled by default
+# Before enabling make sure that nodelocaldns is disabled
+# https://github.com/cilium/cilium/issues/33144
+# cilium_enable_transparent_dnsproxy: false

@@ -1,0 +1,8 @@
+---
+nvidia_operator_enabled: false
+nvidia_operator_helm_repo_url: "https://helm.ngc.nvidia.com/nvidia"
+nvidia_operator_helm_namespace: "gpu-operator"
+nvidia_operator_helm_version: "v25.3.0"
+
+nvidia_operator_driver_enabled: true
+nvidia_operator_toolkit_enabled: true

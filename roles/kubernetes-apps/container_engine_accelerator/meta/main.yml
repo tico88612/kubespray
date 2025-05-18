@@ -6,3 +6,10 @@ dependencies:
       - apps
       - nvidia_gpu
       - container_engine_accelerator
+
+  - role: kubernetes-apps/container_engine_accelerator/nvidia_operator
+    when: nvidia_operator_enabled
+    tags:
+      - apps
+      - nvidia_operator
+      - container_engine_accelerator

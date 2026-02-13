@@ -8,6 +8,7 @@ import sys
 import os
 import logging
 import subprocess
+import time
 
 from itertools import groupby, chain
 from more_itertools import partition
@@ -28,6 +29,42 @@ from . import components
 CHECKSUMS_YML = Path("roles/kubespray_defaults/vars/main/checksums.yml")
 
 logger = logging.getLogger(__name__)
+
+RETRYABLE_EXCEPTIONS = (
+    requests.exceptions.ChunkedEncodingError,
+    requests.exceptions.ConnectionError,
+    requests.exceptions.Timeout,
+)
+
+RETRYABLE_STATUS_CODES = {502, 503, 504}
+
+
+def request_with_retry(method, *args, max_retries=3, backoff_factor=1, **kwargs):
+    """Call a requests method with retry on transient network errors."""
+    for attempt in range(max_retries + 1):
+        try:
+            response = method(*args, **kwargs)
+            if response.status_code in RETRYABLE_STATUS_CODES:
+                if attempt == max_retries:
+                    response.raise_for_status()
+                wait = backoff_factor * (2 ** attempt)
+                logger.warning(
+                    "Request returned %d (attempt %d/%d). Retrying in %ds...",
+                    response.status_code, attempt + 1, max_retries, wait,
+                )
+                time.sleep(wait)
+                continue
+            response.raise_for_status()
+            return response
+        except RETRYABLE_EXCEPTIONS as e:
+            if attempt == max_retries:
+                raise
+            wait = backoff_factor * (2 ** attempt)
+            logger.warning(
+                "Request failed (attempt %d/%d): %s. Retrying in %ds...",
+                attempt + 1, max_retries, e, wait,
+            )
+            time.sleep(wait)
 
 
 def open_yaml(file: Path):
@@ -113,14 +150,14 @@ def download_hash(downloads: {str: {str: Any}}) -> None:
     @cache
     def _get_hash_by_arch(download: str, version: str) -> {str: str}:
 
-        hash_file = s.get(
+        hash_file = request_with_retry(
+            s.get,
             downloads[download]["url"].format(
                 version=version,
                 os="linux",
             ),
             allow_redirects=True,
         )
-        hash_file.raise_for_status()
         return download_hash_extract[download](hash_file.content.decode())
 
     releases, tags = map(
@@ -130,7 +167,8 @@ def download_hash(downloads: {str: {str: Any}}) -> None:
         "with_releases": [r["graphql_id"] for r in releases.values()],
         "with_tags": [t["graphql_id"] for t in tags.values()],
     }
-    response = s.post(
+    response = request_with_retry(
+        s.post,
         "https://api.github.com/graphql",
         json={
             "query": files(__package__).joinpath("list_releases.graphql").read_text(),
@@ -147,7 +185,6 @@ def download_hash(downloads: {str: {str: Any}}) -> None:
             response.headers["X-RateLimit-Limit"],
             datetime.fromtimestamp(int(response.headers["X-RateLimit-Reset"])),
         )
-    response.raise_for_status()
 
     def valid_version(possible_version: str) -> Optional[Version]:
         try:
@@ -230,7 +267,8 @@ def download_hash(downloads: {str: {str: Any}}) -> None:
             hashes = _get_hash_by_arch(component, version)
             return hashes[arch]
         else:
-            hash_file = s.get(
+            hash_file = request_with_retry(
+                s.get,
                 downloads[component]["url"].format(
                     version=version,
                     os="linux",
@@ -239,7 +277,6 @@ def download_hash(downloads: {str: {str: Any}}) -> None:
                 ),
                 allow_redirects=True,
             )
-            hash_file.raise_for_status()
             if downloads[component].get("binary", False):
                 return hashlib.new(
                     downloads[component].get("hashtype", "sha256"), hash_file.content

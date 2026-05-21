@@ -191,6 +191,33 @@ cilium_bgp_peering_policies:
 
 For further information, check [BGP Peering Policy documentation](https://docs.cilium.io/en/latest/network/bgp-control-plane/bgp-control-plane-v1/#bgp-peering-policy-legacy)
 
+## Routing Mode
+
+By default, Cilium uses tunnel routing (`routingMode: tunnel`) with VXLAN as
+the tunnel protocol. Kubespray exposes the tunnel protocol via
+`cilium_tunnel_mode` (default: `vxlan`).
+
+### Native routing
+
+To use native routing instead of tunneling, the Cilium helm chart requires
+**both** `routingMode: native` and `tunnelProtocol: ""` to be set. Kubespray
+exposes only `tunnelProtocol`, so the rest must go through
+`cilium_extra_values`:
+
+```yml
+cilium_auto_direct_node_routes: true
+cilium_native_routing_cidr: "10.233.0.0/16"
+cilium_extra_values:
+  routingMode: "native"
+  tunnelProtocol: ""
+```
+
+Do **not** set `cilium_tunnel_mode: disabled` on its own — the chart will
+keep its default `routingMode: tunnel`, which conflicts with the disabled
+tunnel and crashes the cilium agent.
+
+For more details, see the [Cilium routing documentation](https://docs.cilium.io/en/stable/network/concepts/routing/).
+
 ## Kube-proxy replacement with Cilium
 
 Cilium can run without kube-proxy by setting `cilium_kube_proxy_replacement`
